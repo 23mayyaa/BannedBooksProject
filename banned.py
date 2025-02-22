@@ -13,6 +13,13 @@ dfAll = pd.concat([df22,df23,df24])
 
 st.title("Book Bans Across the U.S")
 
+l_col, r_col = st.columns(2)
+l_col.text_input("Author")
+r_col.text_input("ISBN")
+
+st.html("<p>Output</p>")
+
+
 #Dropbox for selecting school year
 option = st.selectbox(
     "What school year are you interested in?",
