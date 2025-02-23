@@ -3,10 +3,57 @@ import json
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-
+import joblib
+import pandas as pd
+import google.generativeai as genai
+from sklearn.feature_extraction.text import TfidfVectorizer
+from fuzzywuzzy import fuzz
+import subprocess
 if not isinstance(st.session_state, dict):
     st.session_state = {}
 
+#Loads models
+model = joblib.load('Prediction/model.joblib')
+tfidf = joblib.load('Prediction/tfidf.joblib')
+df_db = pd.read_csv("Prediction/merged_dataset.csv")
+'''
+Function Definitions for checking if 
+title in db/predict banned/checking from gemini
+'''
+
+def check_pd(query_title, df_path="Prediction/merged_dataset.csv", threshold=60):
+    df = df_db
+    
+    best_match = None
+    highest_ratio = 0
+
+    for _, row in df.iterrows():
+        title = row['Title']
+        banned_status = row['Banned']
+
+        ratio = fuzz.ratio(query_title.lower(), title.lower())
+
+        if ratio >= threshold and ratio > highest_ratio:
+            best_match = (title, banned_status)
+            highest_ratio = ratio
+
+    # If a match is found, return the banned status of the highest-matching title
+    return best_match[1] if best_match else False
+def predict_banned(title: str, description: str, genre: str):
+    text_input = title + " " + description + " " + genre
+    embeddings= tfidf.transform([text_input])
+    res=model.predict(embeddings)
+    print(res)
+def check_banned(title, author):
+    API_KEY = "AIzaSyD8e6MpbO8uLTZvU4Ldxca2esUzgCfTkCg"
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    prompt = f"""
+    PROMPT: Given a book name + author determine on a scale of 1 to 10 how likely it is to be [challenged to be removed in a school/public library], if they are outright banned give 10 if there is no record of challenge or possibility of censorship give it 0 Book: Keep in mind that books with sexeul content or involved in sexuality, communism, racism, gay/lgbtq, occult, suicidal thoughts, slavery, racism, revolutions, genocide, anti-government sentiments, war, and beastality, slanderour, pegan rituals or more likely to be challenged 
+    Title: {title}, Author: {author}. RESPONSE FORMAT: STRICTLY IN NUMBER"""
+    num = int((model.generate_content(prompt).text))
+    
+    return num
 #Reading in datasets
 df22 = pd.read_csv("data/PENAmericaBannedBooks21-22.csv")
 df23 = pd.read_csv("data/PENAmericaBannedBooks22-23.csv")
@@ -28,15 +75,29 @@ with col2:
 with st.form("form"):
     l_col, r_col = st.columns(2)
     title = l_col.text_input("Title")
-    isbn = r_col.number_input("ISBN", value=None, format='%0.0f')
+    author = r_col.number_input("author", value=None, format='%0.0f')
     submit = st.form_submit_button("Search")
 
 if "html_str" not in st.session_state:
     st.session_state['html_str'] = "<p>Enter details and click Search.</p>"
 
 if submit:
-    st.session_state['html_str'] = f"<p>{title}, {isbn}</p>"
-
+    st.session_state['html_str'] = f"<p>{title}, {author}</p>"
+    search_list = [title, author]
+    status = check_pd(title)
+    if status==1:
+        description ="Book is Banned/Challenged"
+        st.session_state['html_str'] =description
+    else:
+        num = check_banned(title, author)
+        if(num>=7): 
+            description ="Book is Banned/Challenged"
+        elif num>=3:
+            description ="Book is potentially Challenged"
+        else:
+            description ="Book is not Challenged"
+        st.session_state['html_str'] =description
+    
 
 st.markdown(st.session_state['html_str'], unsafe_allow_html=True)
 
@@ -135,3 +196,4 @@ st_folium(m, width=700, height=500)
 #Display dataframe
 st.subheader("Banned Books Details")
 st.dataframe(df)
+
