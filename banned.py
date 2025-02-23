@@ -10,7 +10,7 @@ df23 = pd.read_csv("data/PENAmericaBannedBooks22-23.csv")
 df24 = pd.read_csv("data/PENAmericaBannedBooks23-24.csv")
 dfAll = pd.concat([df22,df23,df24])
 
-col1, col2 = st.columns([.2,.8])
+col1, col2 = st.columns([.15,.85])
 
 with col1:
     st.image("banbooklogo.png", width=100)
