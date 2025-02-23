@@ -4,26 +4,41 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
+if not isinstance(st.session_state, dict):
+    st.session_state = {}
+
 #Reading in datasets
 df22 = pd.read_csv("data/PENAmericaBannedBooks21-22.csv")
 df23 = pd.read_csv("data/PENAmericaBannedBooks22-23.csv")
 df24 = pd.read_csv("data/PENAmericaBannedBooks23-24.csv")
 dfAll = pd.concat([df22,df23,df24])
 
-col1, col2 = st.columns([.2,.8])
+grdf = pd.read_csv("Training_data/goodreads_data.csv")[["Book", "Author", "Description", "Genres"]]
+grdf_filtered = grdf[~grdf["Book"].isin(dfAll["Title"])]
+grdf_banned = grdf[grdf["Book"].isin(dfAll["Title"])]
+
+
+col1, col2 = st.columns([.15,.85])
 
 with col1:
     st.image("banbooklogo.png", width=100)
 with col2:
     st.title("Book Bans Across the U.S")
 
-l_col, r_col = st.columns(2)
-title = l_col.text_input("Title")
-isbn = r_col.text_input("ISBN")
+with st.form("form"):
+    l_col, r_col = st.columns(2)
+    title = l_col.text_input("Title")
+    isbn = r_col.number_input("ISBN", value=None, format='%0.0f')
+    submit = st.form_submit_button("Search")
 
-html_str = f"<p>{title}, {isbn}</p>"
+if "html_str" not in st.session_state:
+    st.session_state['html_str'] = "<p>Enter details and click Search.</p>"
 
-st.html(html_str)
+if submit:
+    st.session_state['html_str'] = f"<p>{title}, {isbn}</p>"
+
+
+st.markdown(st.session_state['html_str'], unsafe_allow_html=True)
 
 
 #Dropbox for selecting school year
