@@ -10,8 +10,21 @@ df23 = pd.read_csv("data/PENAmericaBannedBooks22-23.csv")
 df24 = pd.read_csv("data/PENAmericaBannedBooks23-24.csv")
 dfAll = pd.concat([df22,df23,df24])
 
+col1, col2 = st.columns([.2,.8])
 
-st.title("Book Bans Across the U.S")
+with col1:
+    st.image("banbooklogo.png", width=100)
+with col2:
+    st.title("Book Bans Across the U.S")
+
+l_col, r_col = st.columns(2)
+title = l_col.text_input("Title")
+isbn = r_col.text_input("ISBN")
+
+html_str = f"<p>{title}, {isbn}</p>"
+
+st.html(html_str)
+
 
 #Dropbox for selecting school year
 option = st.selectbox(
